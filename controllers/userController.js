@@ -1,10 +1,12 @@
 const Users = require('../models/userModel')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-
+const nodemailer = require('nodemailer');
+const Product = require('../models/productModel')
 
 
 const userController = {
+
     register: async (req,res)=>{
 
         try {
@@ -32,7 +34,6 @@ const userController = {
             return res.status(500).json({msg: error.message})
         }
     },
-
     login: async(req,res)=>{
     try {
         const {email,password} = req.body;
@@ -54,7 +55,6 @@ const userController = {
         return res.status(500).json({msg: error.message})
     }
     },
-
     logout: async (req,res)=>{
     try {
         res.clearCookie('refreshtoken', {path: '/user/refresh_token'})
@@ -62,8 +62,7 @@ const userController = {
     } catch (error) {
         return res.status(500).json({msg: error.message})
     }
-},
-
+    },
     refreshToken: async (req,res)=>{
         try {
             const rf_token = req.cookies.refreshtoken;
@@ -77,7 +76,6 @@ const userController = {
             return res.status(500).json({msg: error.message})
         }
     },
-
     getUser: async (req,res) =>{
         try {
             const user = await Users.findById(req.user.id).select('-password')
@@ -99,8 +97,47 @@ const userController = {
         } catch (error) {
             return res.status(500).json({msg: error.message})
         }
-    }
+    },
+    generateTicket: async (req, res) => {
+        try {
+            const user = await Users.findById(req.user.id);
+            if (!user) return res.status(400).json({ msg: "El usuario no existe" });
 
+            const cart = user.cart;
+            let total = 0;
+    
+            for (let item of cart) {
+                const product = await Product.findById(item.productId);
+                total += product.price * item.quantity;
+            }
+    
+            // Configurar nodemailer
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: process.env.GMAIL_ACCOUNT,
+                    pass: process.env.GMAIL_APP_PASSWORD
+                }
+            });
+            const mailOptions = {
+                from: process.env.GMAIL_ACCOUNT,
+                to: user.email,
+                subject: 'Ticket de Compra',
+                text: `Gracias por tu compra!. El total de tu carrito es $${total}.`
+            };
+            transporter.sendMail(mailOptions, async (error, info) => {
+                if (error) {
+                    return res.status(500).json({ msg: error.message });
+                } else {
+                    user.cart = [];
+                    await user.save();
+                    return res.json({ msg: 'Ticket de compra enviado por correo', total });
+                }
+            });
+        } catch (error) {
+            return res.status(500).json({ msg: error.message });
+        }
+    }
 }
 
 const createAccesToken = (user) =>{

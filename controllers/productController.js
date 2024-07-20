@@ -44,6 +44,7 @@ class APIfeatures {
 //CRUD 
 
 const productController = {
+
     getProducts: async (req,res) =>{
         try {
             const features = new APIfeatures(Products.find(), req.query).filtering().sorting().paginating()
@@ -98,7 +99,6 @@ const productController = {
             return res.status(500).json({msg: error.message})
         }
     },
-
 
 }
 
