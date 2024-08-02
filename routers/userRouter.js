@@ -8,9 +8,6 @@ router.post('/login',userController.login)
 router.get('/logout',userController.logout)
 router.get('/refresh_token',userController.refreshToken)
 router.get('/current', auth, userController.getUser)
-router.patch('/addcart',auth,userController.addCart)
-router.post('/generateticket', auth, userController.generateTicket);
-
 
 
 module.exports = router

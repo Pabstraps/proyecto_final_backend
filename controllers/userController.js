@@ -1,8 +1,6 @@
 const Users = require('../models/userModel')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
-const nodemailer = require('nodemailer');
-const Product = require('../models/productModel')
 
 
 const userController = {
@@ -86,58 +84,6 @@ const userController = {
             return res.status(500).json({msg: error.message})
         }
     },
-    addCart: async (req,res) =>{
-        try {
-            const user = await Users.findById(req.user.id)
-            if(!user) return res.status(400).json({msg:"El usuario no existe"})
-            await Users.findOneAndUpdate({_id: req.user.id},{
-                cart:req.body.cart
-            })
-            return res.json({msg: 'Agregado al carrito'})
-        } catch (error) {
-            return res.status(500).json({msg: error.message})
-        }
-    },
-    generateTicket: async (req, res) => {
-        try {
-            const user = await Users.findById(req.user.id);
-            if (!user) return res.status(400).json({ msg: "El usuario no existe" });
-
-            const cart = user.cart;
-            let total = 0;
-    
-            for (let item of cart) {
-                const product = await Product.findById(item.productId);
-                total += product.price * item.quantity;
-            }
-    
-            // Configurar nodemailer
-            const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: {
-                    user: process.env.GMAIL_ACCOUNT,
-                    pass: process.env.GMAIL_APP_PASSWORD
-                }
-            });
-            const mailOptions = {
-                from: process.env.GMAIL_ACCOUNT,
-                to: user.email,
-                subject: 'Ticket de Compra',
-                text: `Gracias por tu compra!. El total de tu carrito es $${total}.`
-            };
-            transporter.sendMail(mailOptions, async (error, info) => {
-                if (error) {
-                    return res.status(500).json({ msg: error.message });
-                } else {
-                    user.cart = [];
-                    await user.save();
-                    return res.json({ msg: 'Ticket de compra enviado por correo', total });
-                }
-            });
-        } catch (error) {
-            return res.status(500).json({ msg: error.message });
-        }
-    }
 }
 
 const createAccesToken = (user) =>{
@@ -146,11 +92,6 @@ const createAccesToken = (user) =>{
 const createRefreshToken = (user) =>{
     return jwt.sign(user,process.env.REFRESH_TOKEN_SECRET, {expiresIn: "5d"})
 }
-
-
-
-
-
 
 
 
